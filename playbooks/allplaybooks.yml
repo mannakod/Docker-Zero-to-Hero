@@ -1,0 +1,214 @@
+---
+- name: Install and Start the service
+  hosts: all
+  vars:
+    - app: httpd
+
+  tasks:
+  - name: Installing nginx
+    yum:
+      name: "{{ app }}"
+      state: present
+    tags: i-nginx
+
+  - name: Starting the nginx service
+    service:
+      name: "{{ app }}"
+      state: started
+      enabled: true
+    tags: ss-nginx
+---
+- name: Copying files to remote
+  hosts: all
+
+  tasks:
+  - name: Copy files
+    copy:
+      src: /root/myfile.txt
+      dest: /tmp/
+      owner: paul
+      group: paul
+      mode: ugo=rw
+      backup: true
+---
+- name: File Module
+  hosts: all
+
+  tasks:
+  - name: Creating a file
+    file:
+      path: /tmp/newfile.txt
+      state: absent
+      owner: paul
+      group: paul
+      mode: u=rwx,g=rw,o=r
+
+  - name: Creating a directory
+    file:
+      path: /tmp/myfolder
+      state: absent
+---
+- name: change permissions
+  hosts: all
+
+  tasks:
+  - name: change perm
+    file:
+      path: /tmp/myfile.txt
+      mode: u=r,g=rw
+---
+- name: Run a script
+  hosts: all
+
+  tasks:
+  - name: Run script
+    shell: ./test.sh >> test.log
+    args:
+      chdir: /tmp/script/
+      creates: test.log
+---
+- name: Cron Setup
+  hosts: all
+
+  tasks:
+  - name: Add Cron Job
+    cron:
+      name: Run Test Script
+      minute: 30
+      hour: 20
+      day: 15
+      month: "*"
+      weekday: "*"
+      user: paul
+      job: /tmp/script/test.sh
+      disabled: yes
+---
+- name: Modify Cron
+  hosts: all
+
+  tasks:
+  - name: Remove Cron Job
+    cron:
+      name: VARR
+      env: yes
+      user: paul
+      job: /tmp/script/test.sh
+      insertafter: PATH
+      state: absent
+---
+- name: User Mgm
+  hosts: all
+
+  tasks:
+  - name: User Creation
+    user:
+      name: "{{ item }}"
+      comment: new user adding for QA Team
+      shell: /bin/bash
+    loop:
+      - Raju
+      - Sham
+      - Baburao
+---
+- name: Set Password
+  hosts: all
+
+  tasks:
+  - name: Set passwd
+    user:
+      name: nick
+      update_password: always
+      password: "{{'abcd12345' | password_hash('sha512', 'mysecretcode')}}"
+---
+- name: Downlaod files
+  hosts: all
+
+  tasks:
+  - name: Download file
+    get_url:
+      url: https://www.python.org/ftp/python/3.12.2/Python-3.12.2.tar.xz
+      dest: /tmp/script/
+      owner: paul
+      group: paul
+      mode: 0777
+---
+- name: Kill a process
+  hosts: all
+
+  tasks:
+  - name: Find a process and kill it
+    ignore_errors: yes
+    shell: "pgrep nginx | xargs kill"
+
+  - name: Start the service
+    service:
+      name: nginx
+      state: started
+---
+- name: Firewall changes
+  hosts: all
+  become: true
+
+  tasks:
+  - name: Enable a service in firewalldd
+    firewalld:
+      port: 80/tcp
+      permanent: true
+      state: disabled
+    notify: 
+      - Reload firewalld
+
+  handlers:
+  - name: Reload firewalld
+    service:
+      name: firewalld
+      state: reloaded
+
+
+---
+- name: Installing Httpd
+  hosts: all
+
+  tasks:
+  - name: Install httpd on Redhat
+    yum:
+      name: httpd
+      state: present
+    when: ansible_os_family == "RedHat"
+
+  - name: Install apache2 on Ubuntu
+    apt:
+      name: apache2
+      state: present
+    when: ansible_os_family == "Ubuntu"
+---
+- name: Install and Start the service
+  hosts: all
+  vars:
+    - apps: [yum,httpd,vim,telnet]
+
+  tasks:
+  - name: Installing nginx
+    yum:
+      name: "{{ item }}"
+      state: present
+    tags: i-nginx
+    with_items: "{{ apps }}"
+
+
+
+---
+- name: First Basic PB
+  hosts: all
+
+  tasks:
+  - name: Test Connectivity
+    ping:
+  - name: "Print Output"
+    debug: msg="Alright!!"
+---
+- name: Install httpd and Firewall changes
+  hosts: all
+  roles:
+    - httpd_setup
+    - fwd_service 
